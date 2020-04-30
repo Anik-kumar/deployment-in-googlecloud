@@ -95,3 +95,8 @@ http {
 	include /etc/nginx/sites-enabled/*;
 }
 ```
+#create a new firewall rules for port 8080
+![google cloud firewall](/images/firewall1.png)
+
+![google cloud firewall](/images/firewall2.png)
+
