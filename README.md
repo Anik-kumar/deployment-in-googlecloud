@@ -163,7 +163,7 @@ Then run this cmd:
 ```
 $ sudo /usr/bin/mongod  --config /etc/mongod.conf --fork
 ```
-* This command will create a child process of `mongod` service each time you.
+* This command will create a child process of `mongod` service each time you run.
 
 # Create a admin user in database
 * ### Start MongoDB without access control
