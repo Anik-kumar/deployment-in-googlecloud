@@ -1,22 +1,46 @@
 # install gcloud in ubuntu
 https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu
 
-# deployment steps
-1. create vm instance in google cloud
-2. install dependencies in vm instance
+# Deployment steps
+1. create firewall rules vm instance in google cloud
+2. create vm instance in google cloud
+3. install dependencies in vm instance
 	1. nodejs
-3. install reverse proxy, nginx
-4. expose port 8080 for node server and mongodb port 27017
-4. upload back-end and front-end code in vm instance
-5. install mongodb
-6. install a process manager, pm2
-7. run front-end and back-end in process manager
-8. configure load balancer
-9. expose public ip
-10. dns mapping
+4. install reverse proxy, nginx
+5. expose port 8080 for node server and mongodb port 27017
+6. upload back-end and front-end code in vm instance
+7. install mongodb
+8. install a process manager, pm2
+9. run front-end and back-end in process manager
+10. configure load balancer
+11. expose public ip
+12. dns mapping
 
 
-# install nodejs 12
+
+# Create a new firewall rules for port 8080 and 27017
+creating firewall rule for both port 8080 and 27017 using `Network tags: ` `mongodb-server`.
+
+![google cloud firewall](/images/create-firewall1.png)
+![google cloud firewall](/images/create-firewall2.png)
+![google cloud firewall](/images/create-firewall3.png)
+
+# Create vm instance
+![google cloud vm instance](/images/create-vm-1.png)
+![google cloud vm instance](/images/create-vm-2.png)
+![google cloud vm instance](/images/create-vm-3.png)
+![google cloud vm instance](/images/create-vm-4.png)
+![google cloud vm instance](/images/create-vm-5.png)
+![google cloud vm instance](/images/create-vm-7.png)
+![google cloud vm instance](/images/create-vm-8.png)
+
+# Connect to vm-instance via local cmd prompt
+![google cloud vm instance](/images/connect-vm-1.png)
+![google cloud vm instance](/images/connect-vm-3.png)
+![google cloud vm instance](/images/connect-vm-4.png)
+![google cloud vm instance](/images/connect-vm-5.png)
+
+# Install nodejs 12
 ```
 $ sudo apt update //update repository
 $ sudo apt -y upgrade
@@ -25,8 +49,8 @@ $ curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
 $ sudo apt -y install nodejs
 ```
 
-# install nginx 
-install cmd
+# Install nginx 
+install command
 ```shell script
 $ sudo apt install nginx
 ```
@@ -55,22 +79,7 @@ nginx configuration file location
 /etc/nginx/nginx.conf
 
 
-https://linuxize.com/post/how-to-install-nginx-on-ubuntu-18-04/
-
-# open port 8080
-Default port 80
-```
-server {
-	listen		80;
-	server_name	localhost;
-	
-	root /var/www/html;
-	location / {
-            	#index  index.html index.htm;
-		try_files $uri $uri/ /index.html;
-        }
-}
-```
+# Open port 8080 in nginx
 Create a new virtual host config file in /etc/nginx/sites-available/server2
 ```
 server {
@@ -108,219 +117,118 @@ http {
 	include /etc/nginx/sites-enabled/*;
 }
 ```
-# create a new firewall rules for port 8080
-![google cloud firewall](/images/firewall1.png)
 
-![google cloud firewall](/images/firewall2.png)
+# Creating a new VM instance for mongodb
+![google cloud vm instance](/images/create-vm-mongo1.png)
+![google cloud vm instance](/images/create-vm-mongo2.png)
+Add `mongodb-server` tag to the instance.
 
-# upload files in google cloud using gcloud
-```gcloud compute scp local-file-path instance-name:~```
 
-Replace the following:
-* `local-file-path`: The path to the file on your workstation.
-* `instance-name`: The name of your instance.
+# Install mongodb
+Connected to database-server from my local terminal.
+![google cloud vm instance](/images/connect-database1.png)
 
-Example
+\
+Install commands:
 ```
-gcloud compute scp /home/user/workspace/upload/dist.zip server1:~
+$ sudo apt-get install gnupg
+$ wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+$ echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+$ sudo apt-get update
+$ sudo apt-get install -y mongodb-org
 ```
-This zip file contains angular application.
-
-Now we have to extract zip and place content in a directory where nginx default servers `root` is pointed. In this example , the root path is `/home/anik/uiapp`
-
-Here is directory structure of `nginx 1.14` in `Ubuntu 18.04`
+`To install mongodb specific version.`
 ```
-|-etc/nginx
-|		|- conf.d
-|		|- fastcgi.conf
-|		|- fastcgi_params
-|		|- koi-utf
-|		|- koi-win
-|		|- mime.types
-|		|- modules-available/
-|		|- modules-enabled/
-|		|- nginx.conf
-|		|- proxy_params
-|		|- scgi_params
-|		|- sites-available/
-|				|- default
-|				|- server2
-|				|- server3
-|		|- sites-enable/
-|		|- snippets/
-|		|- uwsgi_params
-|		|- win-utf
+$ sudo apt-get install -y mongodb-org=4.2.6 mongodb-org-server=4.2.6 mongodb-org-shell=4.2.6 mongodb-org-mongos=4.2.6 mongodb-org-tools=4.2.6
 ```
 
-`nginx.conf` file
+Mongodb installed via package manager, data directory `/var/lib/mongodb` and log directory `/var/lib/mongodb` are created automatically.\
+Mongodb config file is in `/etc/mongod.conf`.
+
+# Configure mongod.conf
+After connecting to mongodb vm-instance:
 ```
-user www-data;
-worker_processes auto;
-pid /run/nginx.pid;
-include /etc/nginx/modules-enabled/*.conf;
-
-events {
-	worker_connections 768;
-	# multi_accept on;
-}
-
-http {
-
-	##
-	# Basic Settings
-	##
-
-	sendfile on;
-	tcp_nopush on;
-	tcp_nodelay on;
-	keepalive_timeout 65;
-	types_hash_max_size 2048;
-	# server_tokens off;
-
-	# server_names_hash_bucket_size 64;
-	# server_name_in_redirect off;
-
-	include /etc/nginx/mime.types;
-	default_type application/octet-stream;
-
-	##
-	# SSL Settings
-	##
-
-	ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
-	ssl_prefer_server_ciphers on;
-
-	##
-	# Logging Settings
-	##
-
-	access_log /var/log/nginx/access.log;
-	error_log /var/log/nginx/error.log;
-
-	##
-	# Gzip Settings
-	##
-
-	gzip on;
-
-	# gzip_vary on;
-	# gzip_proxied any;
-	# gzip_comp_level 6;
-	# gzip_buffers 16 8k;
-	# gzip_http_version 1.1;
-	# gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-
-	##
-	# Virtual Host Configs
-	##
-
-	include /etc/nginx/conf.d/*.conf;
-	include /etc/nginx/sites-available/server2;
-	include /etc/nginx/sites-enabled/*;
-}
+$ sudo nano /etc/mongod.conf
 ```
-`etc/nginx/sites-enabled/` points to sites `etc/nginx/sites-available/`\
-Virtual servers configured inside `sites-available` directory.
-
-etc/nginx/sites-available/default 
+Change `bindIp: 127.0.0.1` to `bindIpAll: true`.\
+Now restart mongod service & check status:
 ```
-##
-# You should look at the following URL's in order to grasp a solid understanding
-# of Nginx configuration files in order to fully unleash the power of Nginx.
-# https://www.nginx.com/resources/wiki/start/
-# https://www.nginx.com/resources/wiki/start/topics/tutorials/config_pitfalls/
-# https://wiki.debian.org/Nginx/DirectoryStructure
-#
-# In most cases, administrators will remove this file from sites-enabled/ and
-# leave it as reference inside of sites-available where it will continue to be
-# updated by the nginx packaging team.
-#
-# This file will automatically load configuration files provided by other
-# applications, such as Drupal or Wordpress. These applications will be made
-# available underneath a path with that package name, such as /drupal8.
-#
-# Please see /usr/share/doc/nginx-doc/examples/ for more detailed examples.
-##
-
-# Default server configuration
-#
-server {
-	listen 80 default_server;
-	listen [::]:80 default_server;
-
-	# SSL configuration
-	#
-	# listen 443 ssl default_server;
-	# listen [::]:443 ssl default_server;
-	#
-	# Note: You should disable gzip for SSL traffic.
-	# See: https://bugs.debian.org/773332
-	#
-	# Read up on ssl_ciphers to ensure a secure configuration.
-	# See: https://bugs.debian.org/765782
-	#
-	# Self signed certs generated by the ssl-cert package
-	# Don't use them in a production server!
-	#
-	# include snippets/snakeoil.conf;
-
-	#root /var/www/html;
-	root /home/anik/uiapp;
-
-	# Add index.php to the list if you are using PHP
-	index index.html index.htm index.nginx-debian.html;
-
-	server_name _;
-
-	location / {
-		# First attempt to serve request as file, then
-		# as directory, then fall back to displaying a 404.
-		try_files $uri $uri/ =404;
-	}
-
-	# pass PHP scripts to FastCGI server
-	#
-	#location ~ \.php$ {
-	#	include snippets/fastcgi-php.conf;
-	#
-	#	# With php-fpm (or other unix sockets):
-	#	fastcgi_pass unix:/var/run/php/php7.0-fpm.sock;
-	#	# With php-cgi (or other tcp sockets):
-	#	fastcgi_pass 127.0.0.1:9000;
-	#}
-
-	# deny access to .htaccess files, if Apache's document root
-	# concurs with nginx's one
-	#
-	#location ~ /\.ht {
-	#	deny all;
-	#}
-}
-
-
-# Virtual Host configuration for example.com
-#
-# You can move that to a different file under sites-available/ and symlink that
-# to sites-enabled/ to enable it.
+$ sudo systemctl restart mongod
+$ sudo systemctl status mongod
 ```
-In my example, I have modified the root path, `/var/www/html`,  in default server which is running on port 80
-```	
-#root ;
-root /home/anik/uiapp; 
+If status is like this:
+![google cloud vm instance](/images/mongoError.png)
+
+Then run this cmd:
+```
+$ sudo /usr/bin/mongod  --config /etc/mongod.conf --fork
+```
+* This command will create a child process of `mongod` service each time you.
+
+# Create a admin user in database
+* ### Start MongoDB without access control
+```
+$ mongod --port 27017 --dbpath /var/lib/mongodb
+```
+* ### Connect to the instance
+```
+$ mongo --port 27017
+```
+* ### Create the user administrator
+```
+$ use admin
+$ db.createUser(
+  {
+    user: "myUserAdmin",
+    pwd: "myUserPass", // or passwordPrompt()
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
+  }
+)
+```
+* ### Re-start the MongoDB instance with access control\
+Exit mongo shell and run this:
+```
+$ sudo systemctl restart mongod
+```
+* ### Again change mongod configuration to enable access control
+```
+$ sudo nano /etc/mongod.conf
+```
+* ### Add this to mongod.conf file
+```
+security:
+  authorization: enabled
 ```
 
-Here is the directory structure of the angular app:
+* ### Again exit shell and restart mongod
 ```
-|- /home/anik/uiapp
-|		|- index.html
-|		|- main-es2015.4b2252f619f4b79f2cf3.js
-|		|- main-es5.4b2252f619f4b79f2cf3.js
-|		|- polyfills-es2015.564b7db4155506889ff6.js
-|		|- polyfills-es5.ffd64b1dc88d29d4347c.js
-|		|- runtime-es2015.0e9886773ddebcd849a9.js
-|		|- runtime-es5.0e9886773ddebcd849a9.js
-|		|- styles.5a46c7ae65db67990354.css
-.....
-.....
+$ sudo systemctl restart mongod
+```
+* ### Connect and authenticate as the user administrator
+```
+$ mongo --port 27017  --authenticationDatabase "admin" -u "myUserAdmin" -p "myUserPass"
+```
+> MongoUri format: `mongodb://<username>:<password>@<host>:<port>/<database>?authSource=<database>`
+
+* ### Create new user for database
+```
+$ use test
+$ db.createUser(
+  {
+    user: "myTester",
+    pwd:  "myPass",   // or passwordPrompt()
+    roles: [ { role: "readWrite", db: "test" },
+             { role: "read", db: "reporting" } ]
+  }
+)
+```
+After creating the additional users, disconnect the mongo shell
+* ### Connect to the instance and authenticate as myTester
+```
+$ mongo --port 27017 -u "myTester" --authenticationDatabase "test" -p "myPass"
+```
+* ### Insert a document as myTester
+```
+$ db.foo.insert( { x: 1, y: 1 } )
 ```
 
